@@ -1,3 +1,4 @@
 *.swp
 *.pkl
 *.json
+data/
