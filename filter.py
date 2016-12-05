@@ -9,6 +9,7 @@ import cPickle as pickle
 FILE_BUSINESS = 'yelp_academic_dataset_business.json'
 FILE_REVIEWS = 'yelp_academic_dataset_review.json'
 FILE_FILTERED_REVIEWS = 'filtered_reviews.pkl'
+FILE_REVIEW_BID = 'review_to_bid.pkl'
 DIR = 'data/'
 
 # get business ids of the restaurants category
@@ -28,7 +29,7 @@ reviews_count = 0
 
 with open(FILE_REVIEWS) as data_file:
     for review_num, line in enumerate(data_file):
-        print '\r processing review_num:', review_num,
+        print '\rprocessing review_num:', review_num,
         data = json.loads(line)
         if data['business_id'] in business_ids:
             reviews_count += 1
@@ -44,5 +45,8 @@ with open(FILE_REVIEWS) as data_file:
                 review_file.write(data['text'].encode('utf-8'))
         if review_num >= 100000:
             break
+
+with open(FILE_REVIEW_BID, 'w') as rbid_file:
+    pickle.dump(review_to_bid, rbid_file)
 
 print '# relevant reviews:', reviews_count
