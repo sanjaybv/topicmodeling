@@ -49,15 +49,18 @@ for review in reviews:
         bid_count.update([bid])
 
 common_restaurants = dict(bid_count.most_common(10))
+common_restaurants_names = {}
 print '--10 most common restaurants--'
 for bid, count in common_restaurants.iteritems():
+    common_restaurants_names[bid] = restaurants[bid]
     print restaurants[bid], '-', count
+
 print
 
 for review_num, review in enumerate(reviews):
     review = json.loads(review)
     bid = review['business_id'].encode('utf-8')
-    if bid in common_restaurants:
+    if bid in common_restaurants_names:
         review_year = review['date'].split('-')[0]
         if int(review_year) >= 2008:
             reviews_count += 1
@@ -73,6 +76,6 @@ for review_num, review in enumerate(reviews):
 
 with open(FILE_REVIEW_BUS, 'w') as rb_file:
     pickle.dump(review_to_bid, rb_file)
-    pickle.dump(restaurants, rb_file)
+    pickle.dump(common_restaurants_names, rb_file)
 
 print '# relevant reviews:', reviews_count
