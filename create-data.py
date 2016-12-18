@@ -2,14 +2,22 @@ import os
 
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.decomposition import NMF
+from sklearn.preprocessing import Normalizer
 import numpy as np
 import pickle
 import bottleneck
+import re
 
 DATA_DIR = 'data/raw/'
 WINDOW_FILE = 'data/window-models.pkl'
 YEARS = xrange(2008, 2017)
 STOPWORDS_FILE = 'data/stopwords.txt'
+
+token_pattern = re.compile(r"\b\w\w+\b", re.U)
+
+def custom_tokenizer(s, min_term_length=2):
+    return [x.lower() for x in token_pattern.findall(s) 
+            if len(x) >= min_term_length and x[0].isalpha()]
 
 class WindowModel(object):
 
@@ -26,9 +34,12 @@ class WindowModel(object):
                 input='filename', 
                 stop_words=stopwords, 
                 strip_accents='unicode',
-                min_df=2,
+                min_df=5,
                 norm='l2',
-                max_features=1000
+                lowercase=True,
+                max_features=1000,
+                tokenizer=custom_tokenizer,
+                ngram_range=(1,1)
                 )
         self.tfidf_matrix = tfidf.fit_transform(files)
 
@@ -39,8 +50,9 @@ class WindowModel(object):
 
         # apply NMF
         nmf = NMF(
-                init='random',
-                n_components=self.num_topics
+                init='nndsvd',
+                n_components=self.num_topics,
+                max_iter=200
                 )
         self.W = nmf.fit_transform(self.tfidf_matrix)
         self.H = nmf.components_
@@ -64,7 +76,7 @@ class WindowModel(object):
 
 
 class DynamicModel(object):
-    def __init__(self, num_top=10, num_topics=17):
+    def __init__(self, num_top=10, num_topics=15):
         self.B = None
         self.terms = {}         # term --> index in B
         self.num_top = num_top
@@ -73,18 +85,20 @@ class DynamicModel(object):
     def build_b_matrix(self, window_models):
 
         # get top terms across all windows
-        topic_docs = {}
+        self.topic_docs = {}
+        self.topic_names = []
         for year in sorted(window_models.keys()):
             window_topic = window_models[year]
             top_terms = window_topic.get_top_terms(self.num_top)
-            topic_docs.update(top_terms)
+            self.topic_docs.update(top_terms)
             for topic_name, topic_terms in top_terms.iteritems():
+                self.topic_names.append(topic_name)
                 for term in topic_terms:
                     if term[0] not in self.terms:
                         self.terms[term[0]] = len(self.terms)
        
         # concat H matrix to B
-        for topic_name, topic_terms in topic_docs.iteritems():
+        for topic_name, topic_terms in self.topic_docs.iteritems():
             topic_doc = np.zeros((len(self.terms)))
             for term, value in topic_terms:
                 topic_doc[self.terms[term]] = value
@@ -93,18 +107,39 @@ class DynamicModel(object):
             else:
                 self.B = np.vstack((self.B, topic_doc))
 
+        norm = Normalizer(norm='l2', copy=True)
+        self.B = norm.fit_transform(self.B)
+                
     def build(self, window_models):
 
         # build B matrix
         self.build_b_matrix(window_models)
+        for topic_name in sorted(self.topic_docs.keys()):
+            print topic_name, ' '.join([x[0] for x in self.topic_docs[topic_name]])
 
         # apply NMF again
         nmf = NMF(
-                init='random',
-                n_components=self.num_topics
+                init='nndsvd',
+                n_components=self.num_topics,
+                max_iter=200
                 )
         self.U = nmf.fit_transform(self.B)
         self.V = nmf.components_
+
+        # dynamic_topic --> list(window_topic)
+        self.dynamic_topics = {}
+        
+        for topic_name, row in zip(self.topic_names, self.U):
+            dt = row.argmax()
+            if not self.dynamic_topics.get(dt):
+                self.dynamic_topics[dt] = []
+            self.dynamic_topics[dt].append(topic_name)
+
+        for dt, wts in self.dynamic_topics.iteritems():
+            print dt
+            for window_topic in wts:
+                print ' '.join([term_score[0] for term_score in self.topic_docs[window_topic]])
+            print
         
 
 def build_window_models():
@@ -116,6 +151,7 @@ def build_window_models():
 
     with open(STOPWORDS_FILE) as f:
        stopwords = set(f.read().split())
+    print '#stopwords:', len(stopwords)
 
     window_models = {}
     print 'building window topic models...'
