@@ -52,7 +52,8 @@ class WindowModel(object):
         nmf = NMF(
                 init='nndsvd',
                 n_components=self.num_topics,
-                max_iter=200
+                max_iter=100,
+                random_state=0,
                 )
         self.W = nmf.fit_transform(self.tfidf_matrix)
         self.H = nmf.components_
@@ -86,19 +87,19 @@ class DynamicModel(object):
 
         # get top terms across all windows
         self.topic_docs = {}
-        self.topic_names = []
         for year in sorted(window_models.keys()):
             window_topic = window_models[year]
             top_terms = window_topic.get_top_terms(self.num_top)
             self.topic_docs.update(top_terms)
             for topic_name, topic_terms in top_terms.iteritems():
-                self.topic_names.append(topic_name)
                 for term in topic_terms:
                     if term[0] not in self.terms:
                         self.terms[term[0]] = len(self.terms)
        
         # concat H matrix to B
+        self.topic_names = []
         for topic_name, topic_terms in self.topic_docs.iteritems():
+            self.topic_names.append(topic_name)
             topic_doc = np.zeros((len(self.terms)))
             for term, value in topic_terms:
                 topic_doc[self.terms[term]] = value
@@ -121,7 +122,8 @@ class DynamicModel(object):
         nmf = NMF(
                 init='nndsvd',
                 n_components=self.num_topics,
-                max_iter=200
+                max_iter=100,
+                random_state=0,
                 )
         self.U = nmf.fit_transform(self.B)
         self.V = nmf.components_
