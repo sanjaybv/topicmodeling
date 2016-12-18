@@ -115,8 +115,6 @@ class DynamicModel(object):
 
         # build B matrix
         self.build_b_matrix(window_models)
-        for topic_name in sorted(self.topic_docs.keys()):
-            print topic_name, ' '.join([x[0] for x in self.topic_docs[topic_name]])
 
         # apply NMF again
         nmf = NMF(
