@@ -1,3 +1,7 @@
 *.swp
 *.json
-data/
+*.pyc
+data/raw/
+data/results/
+data/*.pkl
+data/*.bin
