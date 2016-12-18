@@ -35,12 +35,13 @@ reviews_count = 0
 reviews = []
 with open(FILE_REVIEWS) as data_file:
     for review_num, line in enumerate(data_file):
-        print '\rprocessing review_num:', review_num,
+        print '\rreading review_num:', review_num,
         reviews.append(line)
         #if review_num >= 100000:
         #    break
 print '\ndone reading reviews\n'
 
+print 'calculating top 10 restaurants'
 bid_count = Counter()
 for review in reviews:
     review = json.loads(review)
@@ -57,6 +58,7 @@ for bid, count in common_restaurants.iteritems():
 
 print
 
+print 'writing filtered data to {}'.format(DIR)
 for review_num, review in enumerate(reviews):
     review = json.loads(review)
     bid = review['business_id'].encode('utf-8')
@@ -78,4 +80,5 @@ with open(FILE_REVIEW_BUS, 'w') as rb_file:
     pickle.dump(review_to_bid, rb_file)
     pickle.dump(common_restaurants_names, rb_file)
 
+print 'done\n'
 print '# relevant reviews:', reviews_count
