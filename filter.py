@@ -10,7 +10,7 @@ import cPickle as pickle
 FILE_BUSINESS = 'yelp_academic_dataset_business.json'
 FILE_REVIEWS = 'yelp_academic_dataset_review.json'
 FILE_FILTERED_REVIEWS = 'filtered_reviews.pkl'
-FILE_REVIEW_BUS = 'reviews_restaurants.pkl'
+FILE_REVIEW_BUS = 'data/reviews_restaurants.pkl'
 DIR = 'data/raw/'
 
 # get business ids of the restaurants category
