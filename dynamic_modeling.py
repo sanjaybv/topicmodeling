@@ -8,12 +8,18 @@ import pickle
 import bottleneck
 import re
 
+from word2vec import Coherence
+
 DATA_DIR = 'data/raw/'
 WINDOW_FILE = 'data/window-models.pkl'
 YEARS = xrange(2008, 2017)
 STOPWORDS_FILE = 'data/stopwords.txt'
 
 token_pattern = re.compile(r"\b\w\w+\b", re.U)
+
+with open(STOPWORDS_FILE) as f:
+   stopwords = set(f.read().split())
+print '#stopwords:', len(stopwords)
 
 def custom_tokenizer(s, min_term_length=2):
     return [x.lower() for x in token_pattern.findall(s) 
@@ -57,6 +63,12 @@ class WindowModel(object):
                 )
         self.W = nmf.fit_transform(self.tfidf_matrix)
         self.H = nmf.components_
+
+        self.topic_model = []
+        cur_top_terms = self.get_top_terms(10)
+        for topic_name in sorted(cur_top_terms):
+            topic_row = [x[0] for x in cur_top_terms[topic_name]]
+            self.topic_model.append(topic_row)
 
     def get_top_terms(self, num_top):
         # topic_name --> list(term, value)
@@ -136,8 +148,9 @@ class DynamicModel(object):
             self.dynamic_topics[dt].append(topic_name)
 
         for dt, wts in self.dynamic_topics.iteritems():
-            print dt
-            for window_topic in wts:
+            print '--- Dynamic Topic #{} ---'.format(dt)
+            for window_topic in sorted(wts):
+                print window_topic,
                 print ' '.join([term_score[0] for term_score in self.topic_docs[window_topic]])
             print
         
@@ -149,9 +162,6 @@ def build_window_models():
         with open(WINDOW_FILE) as window_file:
             return pickle.load(window_file)
 
-    with open(STOPWORDS_FILE) as f:
-       stopwords = set(f.read().split())
-    print '#stopwords:', len(stopwords)
 
     window_models = {}
     print 'building window topic models...'
@@ -177,11 +187,15 @@ def main():
     # build individial window topic models
     window_models = build_window_models()
 
+    print '--- Word2Vec Coherence Measure ---'
+    coherence_measure = Coherence(DATA_DIR, stopwords)
+    for year, model in window_models.iteritems():
+        print year, coherence_measure.similarity_score(model.topic_model)
+    print
+
     # build dynamic topic model from window models
     dynamic_model = DynamicModel()
     dynamic_model.build(window_models)
-
-    # show U matrix
 
 
 if __name__ == '__main__':
