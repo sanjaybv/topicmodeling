@@ -4,8 +4,7 @@ import os
 import tempfile
 from collections import Counter
 
-from pprint import pprint
-import cPickle as pickle
+import pickle
 
 FILE_BUSINESS = 'yelp_academic_dataset_business.json'
 FILE_REVIEWS = 'yelp_academic_dataset_review.json'

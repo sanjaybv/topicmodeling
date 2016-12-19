@@ -5,7 +5,6 @@ from sklearn.decomposition import NMF
 from sklearn.preprocessing import Normalizer
 import numpy as np
 import pickle
-import bottleneck
 import re
 
 from word2vec import Coherence
